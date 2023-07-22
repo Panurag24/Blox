@@ -1,20 +1,16 @@
 import java.util.concurrent.TimeUnit;
 
-// Define a class representing a bank account
 class Account {
-    private double balance; // Balance representing the amount of money in the account
+    private double balance;
 
-    // Constructor to initialize the account with an initial balance
     public Account(double initialBalance) {
         this.balance = initialBalance;
     }
 
-    // Synchronized method to deposit money into the account
     public synchronized void deposit(double amount) {
         balance += amount;
     }
 
-    // Synchronized method to withdraw money from the account
     public synchronized void withdraw(double amount) {
         if (balance >= amount) {
             balance -= amount;
@@ -23,7 +19,6 @@ class Account {
         }
     }
 
-    // Synchronized method to get the current balance of the account
     public synchronized double getBalance() {
         return balance;
     }
@@ -31,27 +26,56 @@ class Account {
 
 public class MoneyTransferDemo {
     public static void main(String[] args) {
-        // Create two bank accounts: accountA with 1000 units and accountB with 2000 units
         Account accountA = new Account(1000);
         Account accountB = new Account(2000);
 
-        // Transfer money from account A to account B
-        try {
-            double amountToTransfer = 500;
-            accountA.withdraw(amountToTransfer); // Withdraw the money from account A
-            TimeUnit.MILLISECONDS.sleep(100); // Simulate network latency (for demo purposes)
-            accountB.deposit(amountToTransfer); // Deposit the money into account B
+        // Transfer money from account A to account B securely
+        double amountToTransfer = 500;
+        boolean success = false;
+
+        // Step 1: Acquire locks on both accounts to ensure atomicity
+        synchronized (accountA) {
+            synchronized (accountB) {
+                try {
+                    // Step 2: Start the transaction
+                    System.out.println("Transaction started.");
+
+                    accountA.withdraw(amountToTransfer); // Step 3: Withdraw the money from account A
+                    TimeUnit.MILLISECONDS.sleep(100); // Step 4: Simulate network latency (for demo purposes)
+                    accountB.deposit(amountToTransfer); // Step 5: Deposit the money into account B
+
+                    // Step 6: Commit the transaction if everything is successful
+                    System.out.println("Transaction committed.");
+                    success = true;
+
+                } catch (IllegalArgumentException | InterruptedException e) {
+                    // Step 7: Handle exceptions and rollback the transaction on error
+                    System.out.println("Transaction failed: " + e.getMessage());
+                    rollbackTransaction(accountA, accountB, amountToTransfer);
+                }
+            }
+        }
+
+        // Step 8: Print the result of the money transfer
+        if (success) {
             System.out.println("Money transferred successfully.");
-        } catch (IllegalArgumentException | InterruptedException e) {
-            // Handle exceptions related to insufficient balance or thread interruption
-            System.out.println("Money transfer failed: " + e.getMessage());
+        } else {
+            System.out.println("Money transfer failed.");
         }
 
         // Print final balances of both accounts after the transfer
         System.out.println("Account A balance: " + accountA.getBalance());
         System.out.println("Account B balance: " + accountB.getBalance());
     }
+
+    // Helper method to rollback the transaction
+    private static void rollbackTransaction(Account accountA, Account accountB, double amount) {
+        System.out.println("Rolling back the transaction.");
+        accountA.deposit(amount); // Rollback: Deposit the money back to account A
+        accountB.withdraw(amount); // Rollback: Withdraw the money from account B
+    }
 }
+
 
 
 // Output:-
