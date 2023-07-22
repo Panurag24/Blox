@@ -3,8 +3,14 @@ import java.io.IOException;
 import java.util.Map;
 
 public class JsonParser {
+
+    // Function to parse JSON string into a corresponding Java object
     public static Object parseJson(String jsonString) throws IOException {
+        // Create an ObjectMapper instance, which is the main entry point for Jackson's JSON processing
         ObjectMapper objectMapper = new ObjectMapper();
+        
+        // Use the objectMapper to parse the JSON string into a Java object.
+        // The second argument "Object.class" tells Jackson to map the JSON to the most appropriate Java data type (Object, Map, List, etc.)
         return objectMapper.readValue(jsonString, Object.class);
     }
 
@@ -12,60 +18,19 @@ public class JsonParser {
         try {
             // Input JSON string
             String jsonString = "{\"name\":\"John\",\"age\":30,\"city\":\"New York\"}";
-            
-            // Parse JSON string to Object
+
+            // Parse JSON string to Object using the parseJson function
             Object parsedObject = parseJson(jsonString);
-            
+
             // Output the parsed object
             System.out.println("Parsed Object: " + parsedObject);
         } catch (IOException e) {
+            // Handle any IOException that might occur during parsing
             e.printStackTrace();
         }
     }
 }
 
-
-
-Sure! To parse a valid JSON string into a corresponding Object, List, or Map object in Java, we can use the Jackson library, which is a popular library for working with JSON data. Jackson provides powerful and flexible APIs to parse JSON strings and map them to Java objects.
-
-First, you need to add the Jackson library to your project. You can do this by adding the following Maven dependency to your pom.xml file:
-
-xml
-Copy code
-<dependency>
-    <groupId>com.fasterxml.jackson.core</groupId>
-    <artifactId>jackson-databind</artifactId>
-    <version>2.12.3</version> <!-- Use the latest version available -->
-</dependency>
-Now, let's implement the function to parse the JSON string:
-
-java
-Copy code
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.util.Map;
-
-public class JsonParser {
-    public static Object parseJson(String jsonString) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue(jsonString, Object.class);
-    }
-
-    public static void main(String[] args) {
-        try {
-            // Input JSON string
-            String jsonString = "{\"name\":\"John\",\"age\":30,\"city\":\"New York\"}";
-            
-            // Parse JSON string to Object
-            Object parsedObject = parseJson(jsonString);
-            
-            // Output the parsed object
-            System.out.println("Parsed Object: " + parsedObject);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
 // Explanation:
 
 // import com.fasterxml.jackson.databind.ObjectMapper;: Importing the ObjectMapper class from the Jackson library, which is used to convert JSON strings to Java objects.
