@@ -1,104 +1,112 @@
-import java.util.BitSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class SessionIdGenerator {
-    private static final int MAX_SESSIONS = 1000000; // Maximum number of concurrent sessions
-    private BitSet availableIds; // BitSet to store available session IDs
+public class WarehouseLocation {
 
-    public SessionIdGenerator() {
-        availableIds = new BitSet(MAX_SESSIONS);
-        availableIds.set(1, MAX_SESSIONS); // Mark all IDs as available except 0 (reserved for special use)
+    public static class Point {
+        int x;
+        int y;
+
+        public Point(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
     }
 
-    public int getUniqueSessionId() {
-        int sessionId = availableIds.nextSetBit(0); // Find the first available session ID
+    // Helper function to calculate the Euclidean distance between two points
+    public static double euclideanDistance(Point p1, Point p2) {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
 
-        if (sessionId == -1) {
-            throw new IllegalStateException("No available session IDs.");
+    // Main function to find the optimal warehouse location and destination assignment
+    public static Map<Point, List<Point>> findWarehouseLocation(List<Point> destinations, List<Point> warehouseCandidates,
+                                                               int truckCapacity, int numTrucks) {
+        double bestDistance = Double.POSITIVE_INFINITY;
+        List<Point> bestWarehouseLocation = new ArrayList<>();
+        Map<Point, List<Point>> bestDestinationAssignment = new HashMap<>();
+
+        // Generate all possible combinations of warehouse assignments
+        List<List<Point>> warehouseCombinations = new ArrayList<>();
+        generateCombinations(warehouseCandidates, numTrucks, 0, new ArrayList<>(), warehouseCombinations);
+
+        for (List<Point> warehouses : warehouseCombinations) {
+            double totalDistance = 0;
+            Map<Point, List<Point>> currentAssignment = new HashMap<>();
+            for (Point warehouse : warehouses) {
+                currentAssignment.put(warehouse, new ArrayList<>());
+            }
+
+            // Assign each destination to the closest warehouse with available capacity
+            for (Point dest : destinations) {
+                double minDistance = Double.POSITIVE_INFINITY;
+                Point assignedWarehouse = null;
+
+                for (Point warehouse : warehouses) {
+                    double dist = euclideanDistance(dest, warehouse);
+                    if (dist < minDistance && currentAssignment.get(warehouse).size() < truckCapacity) {
+                        minDistance = dist;
+                        assignedWarehouse = warehouse;
+                    }
+                }
+
+                if (assignedWarehouse != null) {
+                    totalDistance += minDistance;
+                    currentAssignment.get(assignedWarehouse).add(dest);
+                }
+            }
+
+            // Update the best assignment if the total distance is minimized
+            if (totalDistance < bestDistance) {
+                bestDistance = totalDistance;
+                bestWarehouseLocation = new ArrayList<>(warehouses);
+                bestDestinationAssignment = new HashMap<>(currentAssignment);
+            }
         }
 
-        availableIds.clear(sessionId); // Mark the session ID as used
-        return sessionId;
+        return bestDestinationAssignment;
     }
 
-    public void releaseSessionId(int sessionId) {
-        if (sessionId >= 1 && sessionId < MAX_SESSIONS) {
-            availableIds.set(sessionId); // Mark the session ID as available for reuse
-        } else {
-            throw new IllegalArgumentException("Invalid session ID.");
+    // Helper function to generate all possible combinations of warehouses for assignment
+    private static void generateCombinations(List<Point> warehouseCandidates, int numTrucks, int start,
+                                             List<Point> tempCombination, List<List<Point>> result) {
+        if (tempCombination.size() == numTrucks) {
+            result.add(new ArrayList<>(tempCombination));
+            return;
+        }
+
+        for (int i = start; i < warehouseCandidates.size(); i++) {
+            tempCombination.add(warehouseCandidates.get(i));
+            generateCombinations(warehouseCandidates, numTrucks, i + 1, tempCombination, result);
+            tempCombination.remove(tempCombination.size() - 1);
         }
     }
 
     public static void main(String[] args) {
-        SessionIdGenerator generator = new SessionIdGenerator();
+        List<Point> destinations = new ArrayList<>();
+        destinations.add(new Point(2, 5));
+        destinations.add(new Point(8, 3));
+        destinations.add(new Point(4, 6));
+        destinations.add(new Point(7, 2));
 
-        // Example usage
-        int sessionId1 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 1: " + sessionId1);
+        List<Point> warehouseCandidates = new ArrayList<>();
+        warehouseCandidates.add(new Point(1, 3));
+        warehouseCandidates.add(new Point(5, 9));
+        warehouseCandidates.add(new Point(3, 4));
 
-        int sessionId2 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 2: " + sessionId2);
+        int truckCapacity = 2;
+        int numTrucks = 2;
 
-        generator.releaseSessionId(sessionId1);
-        System.out.println("Released Session ID 1.");
+        // Find the optimal warehouse locations and destination assignments
+        Map<Point, List<Point>> destinationAssignment = findWarehouseLocation(destinations, warehouseCandidates,
+                truckCapacity, numTrucks);
 
-        int sessionId3 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 3 (reused): " + sessionId3);
-    }
-}
-
-
-
-To efficiently design a session ID generator for a system handling millions of users concurrently while minimizing the memory footprint, we can use a combination of bit manipulation and a pool of available IDs. We'll use a BitSet to represent the pool of available session IDs, and we'll reserve the first few bits to store additional information like session expiration.
-
-Here's the Java code implementation with two methods, getUniqueSessionId() to provide a unique session ID and releaseSessionId(int sessionId) to release an active ID and make it available for reuse:
-
-java
-Copy code
-import java.util.BitSet;
-
-public class SessionIdGenerator {
-    private static final int MAX_SESSIONS = 1000000; // Maximum number of concurrent sessions
-    private BitSet availableIds; // BitSet to store available session IDs
-
-    public SessionIdGenerator() {
-        availableIds = new BitSet(MAX_SESSIONS);
-        availableIds.set(1, MAX_SESSIONS); // Mark all IDs as available except 0 (reserved for special use)
-    }
-
-    public int getUniqueSessionId() {
-        int sessionId = availableIds.nextSetBit(0); // Find the first available session ID
-
-        if (sessionId == -1) {
-            throw new IllegalStateException("No available session IDs.");
+        // Print the results
+        for (Map.Entry<Point, List<Point>> entry : destinationAssignment.entrySet()) {
+            System.out.println("Warehouse Location: (" + entry.getKey().x + ", " + entry.getKey().y + ")");
+            System.out.println("Assigned Destinations: " + entry.getValue());
         }
-
-        availableIds.clear(sessionId); // Mark the session ID as used
-        return sessionId;
-    }
-
-    public void releaseSessionId(int sessionId) {
-        if (sessionId >= 1 && sessionId < MAX_SESSIONS) {
-            availableIds.set(sessionId); // Mark the session ID as available for reuse
-        } else {
-            throw new IllegalArgumentException("Invalid session ID.");
-        }
-    }
-
-    public static void main(String[] args) {
-        SessionIdGenerator generator = new SessionIdGenerator();
-
-        // Example usage
-        int sessionId1 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 1: " + sessionId1);
-
-        int sessionId2 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 2: " + sessionId2);
-
-        generator.releaseSessionId(sessionId1);
-        System.out.println("Released Session ID 1.");
-
-        int sessionId3 = generator.getUniqueSessionId();
-        System.out.println("Generated Session ID 3 (reused): " + sessionId3);
     }
 }
 
