@@ -1,5 +1,7 @@
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public class JsonParser {
@@ -9,9 +11,23 @@ public class JsonParser {
         // Create an ObjectMapper instance, which is the main entry point for Jackson's JSON processing
         ObjectMapper objectMapper = new ObjectMapper();
         
-        // Use the objectMapper to parse the JSON string into a Java object.
-        // The second argument "Object.class" tells Jackson to map the JSON to the most appropriate Java data type (Object, Map, List, etc.)
-        return objectMapper.readValue(jsonString, Object.class);
+        // Use objectMapper to parse the JSON string into a JsonNode
+        JsonNode jsonNode = objectMapper.readTree(jsonString);
+        
+        // Check if the parsed JSON represents an object (Map)
+        if (jsonNode.isObject()) {
+            // Convert the JsonNode to a Map
+            return objectMapper.convertValue(jsonNode, Map.class);
+        }
+        // Check if the parsed JSON represents an array (List)
+        else if (jsonNode.isArray()) {
+            // Convert the JsonNode to a List
+            return objectMapper.convertValue(jsonNode, List.class);
+        }
+        // For other cases (e.g., primitive values or complex structures), convert to Object
+        else {
+            return objectMapper.convertValue(jsonNode, Object.class);
+        }
     }
 
     public static void main(String[] args) {
