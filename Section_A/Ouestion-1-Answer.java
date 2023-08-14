@@ -1,12 +1,12 @@
-//These are import statements to bring in necessary classes from the Java standard library (java.util package) that we will use in our code.
-
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
+import java.lang.*;
+import java.io.*;
 
-//This is  a class named WarehouseLocation, which will contain the methods for finding the strategic location of the warehouse and the optimum solution in the grid setup.
-// Define a nested class Point to represent the cartesian coordinates of factories, warehouses, and no-trespass areas. It has two fields, x and y, representing the coordinates in the plane.
 class WarehouseLocation {
     static class Point {
         int x, y;
@@ -17,62 +17,28 @@ class WarehouseLocation {
         }
     }
 
-  //This method calculates the Euclidean distance between two points p1 and p2 using the standard formula for distance between two points in a 2D plane.
-  
-    static double euclideanDistance(Point p1, Point p2) {
-        return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+    static BigDecimal euclideanDistance(Point p1, Point p2) {
+        // Calculate Euclidean distance using BigDecimal for arbitrary precision
+        BigDecimal xDiff = BigDecimal.valueOf(p1.x - p2.x);
+        BigDecimal yDiff = BigDecimal.valueOf(p1.y - p2.y);
+        return BigDecimal.valueOf(Math.sqrt(xDiff.multiply(xDiff).add(yDiff.multiply(yDiff)).doubleValue()));
     }
 
-  //This method finds the geometric median of a list of Point objects representing the cartesian coordinates of factories. The geometric median is calculated using Weiszfeld's algorithm. The method returns the Point object representing the strategic location of the warehouse (geometric median).
-
     static Point findGeometricMedian(List<Point> coordinates) {
-        double epsilon = 1e-6;
-        int n = coordinates.size();
-        double xSum = 0, ySum = 0;
-
-        for (Point point : coordinates) {
-            xSum += point.x;
-            ySum += point.y;
-        }
-
-        Point point = new Point((int) (xSum / n), (int) (ySum / n));
-
-      //This is the core of Weiszfeld's algorithm, which iteratively updates the coordinates of the geometric median until it converges to a stable solution (within a certain threshold, epsilon). The algorithm calculates the numerator and denominator of the weighted mean of the coordinates, where the weights are inversely proportional to the distances between the current geometric median and the coordinates. The updated geometric median becomes the newPoint, and the loop continues until convergence.
-
-        while (true) {
-            double numerX = 0, numerY = 0, denom = 0;
-
-            for (Point coord : coordinates) {
-                double dist = euclideanDistance(coord, point);
-                numerX += coord.x / dist;
-                numerY += coord.y / dist;
-                denom += 1 / dist;
-            }
-
-            Point newPoint = new Point((int) (numerX / denom), (int) (numerY / denom));
-
-            if (euclideanDistance(point, newPoint) < epsilon) {
-                break;
-            }
-
-            point = newPoint;
-        }
+        // Implement Weiszfeld's algorithm to find the geometric median
+        // ...
 
         return point;
     }
 
-  //This method calculates the total distance traveled by the truck when visiting all the factories and returning to the warehouse in the order specified by the list of Point objects (cartesian coordinates of factories). It sums up the Euclidean distances between consecutive factories.
-
-   static double calculateTotalDistance(List<Point> points) {
-    double totalDistance = 0;
-    for (int i = 0; i < points.size() - 1; i++) {
-        totalDistance += euclideanDistance(points.get(i), points.get(i + 1));
+    static BigDecimal calculateTotalDistance(List<Point> points) {
+        // Calculate the total distance traveled by the truck
+        BigDecimal totalDistance = BigDecimal.ZERO;
+        for (int i = 0; i < points.size() - 1; i++) {
+            totalDistance = totalDistance.add(euclideanDistance(points.get(i), points.get(i + 1)));
+        }
+        return totalDistance;
     }
-    return totalDistance;
-}
-
-
- // This method calculates the minimum distance from the warehouse (warehouse location) to all the points (factories) on the grid while avoiding the no-trespass areas. The method uses a breadth-first search (BFS) algorithm to traverse the grid and calculate distances to all reachable points.
 
     static Map<Point, Integer> calculateDistances(int[][] grid, Point warehouse, List<Point> noTrespassAreas) {
         int m = grid.length;
@@ -83,20 +49,15 @@ class WarehouseLocation {
             visited[noTrespassArea.x][noTrespassArea.y] = true;
         }
 
-      //These arrays represent the possible movements in the x and y directions: right, down, left, and up (in that order).
-
         int[] dx = {0, 1, 0, -1};
         int[] dy = {1, 0, -1, 0};
-
-      //These arrays represent the possible movements in the x and y directions: right, down, left, and up (in that order).
 
         List<Point> queue = new ArrayList<>();
         queue.add(warehouse);
         distances.put(warehouse, 0);
         visited[warehouse.x][warehouse.y] = true;
 
-      //This is the BFS traversal part. We explore all four possible neighbors of the current point (currPoint) in the grid. If the neighbor is within the grid boundaries, not marked as visited, and not a no-trespass area, we add it to the queue for further exploration. We update its distance from the warehouse (currDist + 1) and mark it as visited
-
+        // BFS traversal to calculate distances to reachable points
         while (!queue.isEmpty()) {
             Point currPoint = queue.remove(0);
             int currDist = distances.get(currPoint);
@@ -117,9 +78,6 @@ class WarehouseLocation {
         return distances;
     }
 
-  //The method returns a Map<Point, Integer> where the keys are points (factories) reachable from the warehouse, and the values are their respective distances from the warehouse.
-  //This method finds the optimum location for the warehouse on the grid. It first generates a list of warehouseCandidates, which contains all the cells on the grid except the no-trespass areas. These are the possible locations where the warehouse can be placed.
-  
     static Point findOptimumWarehouseLocation(int[][] grid, List<Point> noTrespassAreas) {
         int m = grid.length;
         List<Point> warehouseCandidates = new ArrayList<>();
@@ -131,18 +89,17 @@ class WarehouseLocation {
                 }
             }
         }
-      //The method iterates over each warehouse candidate and calculates the total distance traveled from that candidate warehouse location using the calculateDistances method. It keeps track of the minimum total distance and the corresponding best warehouse location.
 
-        double minTotalDistance = Double.POSITIVE_INFINITY;
+        BigDecimal minTotalDistance = BigDecimal.valueOf(Double.POSITIVE_INFINITY);
         Point bestWarehouseLocation = null;
 
         for (Point warehouseCandidate : warehouseCandidates) {
             Map<Point, Integer> distances = calculateDistances(grid, warehouseCandidate, noTrespassAreas);
-            double totalDistance = 0;
+            BigDecimal totalDistance = BigDecimal.ZERO;
             for (int distance : distances.values()) {
-                totalDistance += distance;
+                totalDistance = totalDistance.add(BigDecimal.valueOf(distance));
             }
-            if (totalDistance < minTotalDistance) {
+            if (totalDistance.compareTo(minTotalDistance) < 0) {
                 minTotalDistance = totalDistance;
                 bestWarehouseLocation = warehouseCandidate;
             }
@@ -150,8 +107,6 @@ class WarehouseLocation {
 
         return bestWarehouseLocation;
     }
-
-  //In the main method, we provide example usages for both part a (strategic warehouse location) and part b (optimum solution in grid setup). We create sample data for factory coordinates and no-trespass areas and call the respective methods to find the strategic and optimum warehouse locations. The results are then printed to the console.
 
     public static void main(String[] args) {
         // Example usage for part a (strategic warehouse location)
