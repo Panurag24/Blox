@@ -1,80 +1,79 @@
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 class Account {
     private double balance;
+    private Lock lock = new ReentrantLock(); // Lock for synchronizing access to account
 
     public Account(double initialBalance) {
         this.balance = initialBalance;
     }
 
-    public synchronized void deposit(double amount) {
-        balance += amount;
-    }
-
-    public synchronized void withdraw(double amount) {
-        if (balance >= amount) {
-            balance -= amount;
-        } else {
-            throw new IllegalArgumentException("Insufficient balance.");
+    public void deposit(double amount) {
+        lock.lock(); // Acquire lock to ensure exclusive access
+        try {
+            balance += amount; // Perform deposit operation
+        } finally {
+            lock.unlock(); // Release the lock to allow other threads to access
         }
     }
 
-    public synchronized double getBalance() {
-        return balance;
+    public void withdraw(double amount) {
+        lock.lock(); // Acquire lock to ensure exclusive access
+        try {
+            if (balance >= amount) {
+                balance -= amount; // Perform withdrawal operation if sufficient balance
+            } else {
+                throw new IllegalArgumentException("Insufficient balance.");
+            }
+        } finally {
+            lock.unlock(); // Release the lock
+        }
+    }
+
+    public double getBalance() {
+        return balance; // Return the account balance
     }
 }
 
 public class MoneyTransferDemo {
+    private static Lock globalLock = new ReentrantLock(); // Global lock for managing transactions
+
     public static void main(String[] args) {
         Account accountA = new Account(1000);
         Account accountB = new Account(2000);
 
-        // Transfer money from account A to account B securely
         double amountToTransfer = 500;
         boolean success = false;
 
-        // Step 1: Acquire locks on both accounts to ensure atomicity
-        synchronized (accountA) {
-            synchronized (accountB) {
-                try {
-                    // Step 2: Start the transaction
-                    System.out.println("Transaction started.");
+        try {
+            globalLock.lock(); // Acquire the global lock before starting the transaction
 
-                    accountA.withdraw(amountToTransfer); // Step 3: Withdraw the money from account A
-                    TimeUnit.MILLISECONDS.sleep(100); // Step 4: Simulate network latency (for demo purposes)
-                    accountB.deposit(amountToTransfer); // Step 5: Deposit the money into account B
+            System.out.println("Transaction started.");
 
-                    // Step 6: Commit the transaction if everything is successful
-                    System.out.println("Transaction committed.");
-                    success = true;
+            accountA.withdraw(amountToTransfer); // Withdraw money from account A
+            accountB.deposit(amountToTransfer);  // Deposit money into account B
 
-                } catch (IllegalArgumentException | InterruptedException e) {
-                    // Step 7: Handle exceptions and rollback the transaction on error
-                    System.out.println("Transaction failed: " + e.getMessage());
-                    rollbackTransaction(accountA, accountB, amountToTransfer);
-                }
-            }
+            System.out.println("Transaction committed.");
+            success = true;
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("Transaction failed: " + e.getMessage());
+        } finally {
+            globalLock.unlock(); // Release the global lock after completing the transaction
         }
 
-        // Step 8: Print the result of the money transfer
         if (success) {
             System.out.println("Money transferred successfully.");
         } else {
             System.out.println("Money transfer failed.");
         }
 
-        // Print final balances of both accounts after the transfer
         System.out.println("Account A balance: " + accountA.getBalance());
         System.out.println("Account B balance: " + accountB.getBalance());
     }
-
-    // Helper method to rollback the transaction
-    private static void rollbackTransaction(Account accountA, Account accountB, double amount) {
-        System.out.println("Rolling back the transaction.");
-        accountA.deposit(amount); // Rollback: Deposit the money back to account A
-        accountB.withdraw(amount); // Rollback: Withdraw the money from account B
-    }
 }
+
 
 
 
