@@ -63,13 +63,14 @@ class WarehouseLocation {
 
   //This method calculates the total distance traveled by the truck when visiting all the factories and returning to the warehouse in the order specified by the list of Point objects (cartesian coordinates of factories). It sums up the Euclidean distances between consecutive factories.
 
-    static double calculateTotalDistance(List<Point> points) {
-        double totalDistance = 0;
-        for (int i = 0; i < points.size() - 1; i++) {
-            totalDistance += euclideanDistance(points.get(i), points.get(i + 1));
-        }
-        return totalDistance;
+   static double calculateTotalDistance(List<Point> points) {
+    double totalDistance = 0;
+    for (int i = 0; i < points.size() - 1; i++) {
+        totalDistance += euclideanDistance(points.get(i), points.get(i + 1));
     }
+    return totalDistance;
+}
+
 
  // This method calculates the minimum distance from the warehouse (warehouse location) to all the points (factories) on the grid while avoiding the no-trespass areas. The method uses a breadth-first search (BFS) algorithm to traverse the grid and calculate distances to all reachable points.
 
